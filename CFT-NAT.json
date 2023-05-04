@@ -1,0 +1,173 @@
+{
+	"Parameters": {
+		"VPC1CIDR": {
+			"Description": "Enter the VPCCIDR",
+			"Type": "String",
+			"Default": "172.26.0.0/20",
+			"ConstraintDescription": "must be a valid  VPCCIDR range"
+		},
+		"Subnet1CIDR": {
+			"Description": "Enter the Subnet1CIDR ",
+			"Type": "String",
+			"Default": "172.26.0.0/22",
+			"ConstraintDescription": "must be a valid  Subnet1CIDR range"
+		},
+		"Subnet2CIDR": {
+			"Description": "Enter the Subnet2CIDR ",
+			"Type": "String",
+			"Default": "172.26.4.0/23",
+			"ConstraintDescription": "must be a valid  Subnet2CIDR range"
+		}
+	},
+	"Resources": {
+		"VPC1Hitech": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+				"CidrBlock": {
+					"Ref": "VPC1CIDR"
+				},
+				"Tags": [{
+					"Key": "Name",
+					"Value": "Hi-tech_VPC1"
+				}]
+			}
+		},
+		"Subnet1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"CidrBlock": {
+					"Ref": "Subnet1CIDR"
+				},
+				"Tags": [{
+					"Key": "Name",
+					"Value": "Hi-tech_Subnet1"
+				}],
+				"AvailabilityZone": "ap-south-1a",
+				"VpcId": {
+					"Ref": "VPC1Hitech"
+				}
+			}
+		},
+		"Subnet2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"CidrBlock": {
+					"Ref": "Subnet2CIDR"
+				},
+				"Tags": [{
+					"Key": "Name",
+					"Value": "Hi-tech_Subnet2"
+				}],
+				"AvailabilityZone": "ap-south-1a",
+				"VpcId": {
+					"Ref": "VPC1Hitech"
+				}
+			}
+		},
+		"RouteTable1": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC1Hitech"
+				}
+			}
+		},
+		"RouteTable2": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC1Hitech"
+				}
+			}
+		},
+		"InternetGateway1": {
+			"Type": "AWS::EC2::InternetGateway",
+			"Properties": {
+				"Tags": [{
+					"Key": "Name",
+					"Value": "Hi-tech_IGW1"
+				}]
+			}
+		},
+		"AttachIGW1": {
+			"Type": "AWS::EC2::VPCGatewayAttachment",
+			"Properties": {
+				"InternetGatewayId": {
+					"Ref": "InternetGateway1"
+				},
+				"VpcId": {
+					"Ref": "VPC1Hitech"
+				}
+			}
+		},
+
+		"Route1": {
+			"Type": "AWS::EC2::Route",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "RouteTable1"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": {
+					"Ref": "InternetGateway1"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation1": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "Subnet1"
+				},
+				"RouteTableId": {
+					"Ref": "RouteTable1"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation2": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "Subnet2"
+				},
+				"RouteTableId": {
+					"Ref": "RouteTable2"
+				}
+			}
+		},
+		"NAT": {
+			"Type": "AWS::EC2::NatGateway",
+			"Properties": {
+				"AllocationId": {
+					"Fn::GetAtt": ["EIP", "AllocationId"]
+				},
+				"SubnetId": {
+					"Ref": "Subnet1"
+				},
+				"Tags": [{
+					"Key": "stack",
+					"Value": "production"
+				}]
+			}
+		},
+		"EIP": {
+			"DependsOn": ["NAT"],
+			"Type": "AWS::EC2::EIP",
+			"Properties": {
+				"Domain": "vpc"
+			}
+		},
+		"Route": {
+			"Type": "AWS::EC2::Route",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "RouteTable2"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"NatGatewayId": {
+					"Ref": "NAT"
+				}
+			}
+		}
+	}
+}
